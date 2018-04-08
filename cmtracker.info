@@ -1,0 +1,8 @@
+;$Id$
+name = Configuration Management Tracker
+description = Allows administrators to track configuration management events.
+configure = admin/config/system/cmtracker
+core = 7.x
+package = Quotient
+version = "7.x-0.9"
+project = "cmtracker"

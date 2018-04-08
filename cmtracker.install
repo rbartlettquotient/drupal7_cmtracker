@@ -1,0 +1,179 @@
+<?php
+
+/**
+ * @file cmtracker.install
+ * Installation file for CM Tracker.
+ * CM Tracker module allows tracking Configuration Management changes.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function cmtracker_schema() {
+
+  $schema['cmtracker_config'] = array(
+    'description' => 'Stores CM Tracker configuration.',
+    'fields' => array(
+      'cmtracker_config_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique cmtracker config ID.',
+      ),
+      'module_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO MODULE NAME',
+        'description' => 'The module to which this form corresponds.',
+      ),
+      'tracking_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'form_id',
+        'description' => 'The type of config change to track.',
+      ),
+      'tracking_id' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO TRACKING ID',
+        'description' => 'The id of the config change to track.',
+      ),
+      'tracking_title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO TRACKING TITLE',
+        'description' => 'The title of the config item to track.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The user id of the person who made this change.',
+      ),
+      'uname' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => 'UNKNOWN',
+        'description' => 'The username of the person who made this change (for readability in the history).',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The time that the form values were saved, as a Unix timestamp.',
+      ),
+      'hostname' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => "The author's host name.",
+      ),
+    ),
+    'indexes' => array(
+      'cmtracker_config_module_form' => array('module_name', 'tracking_type'),
+    ),
+    'primary key' => array('cmtracker_config_id'),
+  );
+
+  $schema['cmtracker_log'] = array(
+    'description' => 'Stores CM Tracker log of saved form values.',
+    'fields' => array(
+      'cmtracker_log_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique cmtracker log ID.',
+      ),
+      'module_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO MODULE NAME',
+        'description' => 'The module to which this form corresponds.',
+      ),
+      'tracking_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'form_id',
+        'description' => 'The type of config change to track.',
+      ),
+      'tracking_id' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO TRACKING ID',
+        'description' => 'The id of the config change to track.',
+      ),
+      'tracking_title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO TRACKING TITLE',
+        'description' => 'The title of the config item to track.',
+      ),
+      'form_title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO FORM TITLE',
+        'description' => 'The title of the submitted form.',
+      ),
+      'form_path' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NO FORM PATH',
+        'description' => 'The path to the form- useful for forms that can have multiple instances, such as Views.',
+      ),
+      'cmt_value' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON-encoded full value of the saved config values.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The user id of the person who made this change.',
+      ),
+      'uname' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => 'UNKNOWN',
+        'description' => 'The username of the person who made this change (for readability in the history).',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The time that the form values were saved, as a Unix timestamp.',
+      ),
+      'hostname' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => "The author's host name.",
+      ),
+    ),
+    'indexes' => array(
+      'cmtracker_log_module_form' => array('module_name', 'tracking_type'),
+      'cmtracker_log_uid' => array('uid'),
+    ),
+    'primary key' => array('cmtracker_log_id'),
+  );
+
+  return $schema;
+}
+
+function cmtracker_uninstall() {
+  // Tables will auto-delete on un-install.
+
+}

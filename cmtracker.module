@@ -1,0 +1,89 @@
+<?php
+
+/**
+ * @file cmtracker.module
+ *
+ * @version 1.0
+ *
+ * Lets admins track configuration events.
+ *
+ */
+
+
+/**
+ * Implements hook_menu().
+ **/
+function cmtracker_menu() {
+  $items['admin/config/system/cmtracker'] = array(
+    'title' => 'Configuration Management Tracker',
+    'description' => 'Configure events to be tracked',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cmtracker_admin_form'),
+    'access arguments' => array('administer cmtracker'),
+    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
+    'file' => 'cmtracker.admin.inc',
+  );
+
+  // Tabs begin here.
+  $items['admin/config/system/cmtracker/history'] = array(
+    'title' => 'Configuration management history',
+    'page callback' => 'cmtracker_admin_history',
+    'access arguments' => array('administer cmtracker'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  //@todo- restore
+  // provide the admin with a menu link and function that lets them restore to a previous set of config values.
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function cmtracker_permission() {
+  return array(
+    'administer cmtracker' =>  array(
+      'title' => t('Administer configuration management tracker'),
+    ),
+  );
+}
+
+
+
+/**
+ * In hook_form_alter, get the list of admin/config forms we're supposed to be tracking.
+ * If the current form is one of those, add our submit handler to track the changes.
+ *
+ * @see cmtracker_form_submit()
+ *
+ * @ingroup forms
+ */
+function cmtracker_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+
+  /*
+   * Get from cache or db the form ids we're supposed to track.
+   * Only add the submit handler if this form id is one of the ones we're supposed to track.
+   *
+   *
+   */
+
+//  dpm($form_id);
+//  dpm($form);
+
+  //$form['#submit'][] = '_cmtracker_form_submit_handler'
+
+}
+
+
+/**
+ * In submit handler, get the list of admin/config forms we're supposed to be tracking.
+ * If the current form is one of these, log this change to the database, along with username and timestamp.
+ */
+function _cmtracker_form_submit_handler($form, &$form_state) {
+
+//  dpm($form);
+
+}
