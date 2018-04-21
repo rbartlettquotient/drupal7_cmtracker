@@ -24,12 +24,35 @@ function cmtracker_menu() {
     'file' => 'cmtracker.admin.inc',
   );
 
-  // Tabs begin here.
   $items['admin/config/system/cmtracker/history'] = array(
     'title' => 'Configuration management history',
-    'page callback' => 'cmtracker_admin_history',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_cmtracker_admin_history', 5),
     'access arguments' => array('administer cmtracker'),
+    'file' => 'cmtracker.admin.inc',
     'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  $items['admin/config/system/cmtracker/diff'] = array(
+    'title' => 'Configuration management diff',
+    'page arguments' => array(5, 6),
+    'page callback' => '_cmtracker_admin_diff',
+    'access arguments' => array('administer cmtracker'),
+    'file' => 'cmtracker.admin.inc',
+    //'type' => MENU_DEFAULT_LOCAL_TASK,
+    'type' => MENU_CALLBACK,
+    'weight' => -10,
+  );
+
+  $items['admin/config/system/cmtracker/view'] = array(
+    'title' => 'Configuration management view',
+    'page arguments' => array(5),
+    'page callback' => '_cmtracker_admin_view',
+    'access arguments' => array('administer cmtracker'),
+    'file' => 'cmtracker.admin.inc',
+    //'type' => MENU_DEFAULT_LOCAL_TASK,
+    'type' => MENU_CALLBACK,
     'weight' => -10,
   );
 
@@ -63,17 +86,104 @@ function cmtracker_permission() {
 function cmtracker_form_alter(&$form, &$form_state, $form_id) {
   global $user;
 
+  //@todo cache the form ids we're tracking; in this func get from cache
+
   /*
-   * Get from cache or db the form ids we're supposed to track.
+   * Get the form ids we're supposed to track.
    * Only add the submit handler if this form id is one of the ones we're supposed to track.
-   *
-   *
    */
 
-//  dpm($form_id);
-//  dpm($form);
+  $currently_selected = db_select('cmtracker_config', 'cc')->fields('cc')->execute()->fetchAllAssoc('tracking_id');
+  $current_path = current_path();
 
-  //$form['#submit'][] = '_cmtracker_form_submit_handler'
+  // If this is one of the forms we're tracking, add our submit handler.
+  if(array_key_exists($form_id, $currently_selected)) {
+    $form['#submit'][] = '_cmtracker_form_submit_handler';
+
+    // If there is config history for this form, link to the history page.
+    $config_saves = db_select('cmtracker_log', 'cl')
+      ->fields('cl', array('cmt_value', 'cmt_form', 'tracking_id'))
+      ->condition('tracking_id', $form_id)
+      ->condition('form_path', $current_path)
+      ->orderBy('created', 'DESC')
+      ->range(0,1)
+      ->execute()->fetchAllAssoc('tracking_id');
+
+    if(count($config_saves) > 0) {
+      $link = l('View form save history', '/admin/config/system/cmtracker/history/' . $form_id);
+      drupal_set_message($link);
+    }
+
+      //@todo
+    /*
+     * Show an alert if the last logged/saved config change is different than currently showing.
+     * This is trickier- the form_state values we get on submit don't match the form_state values here.
+     * Have to get the values from the $form var, for each value.
+     *
+     * Then flag problem children that don't match.
+     */
+
+    /*
+    $config_saves = db_select('cmtracker_log', 'cl')
+      ->fields('cl', array('cmt_value', 'cmt_form', 'tracking_id'))
+      ->condition('tracking_id', $form_id)
+      ->condition('form_path', $current_path)
+      ->orderBy('created', 'DESC')
+      ->range(0,1)
+      ->execute()->fetchAllAssoc('tracking_id');
+
+    if(count($config_saves) > 0) {
+      $last_config_save = $config_saves[$form_id];
+
+      $last_form_json = $last_config_save->cmt_form;
+      $last_form_values_json = $last_config_save->cmt_value;
+
+      $form_json = json_encode($form);
+      $form_values_json = json_encode($form_state['values']);
+
+      //@todo need xdiff $fdiff = xdiff_string_diff($last_form_json, $form_json, 2);
+      //@todo $vdiff = xdiff_string_diff($last_form_values_json, $form_values_json, 2);
+
+      $f_compare = strcmp($form_json, $last_form_json);
+      $v_compare = strcmp($form_values_json, $last_form_values_json);
+      if(0 !== $f_compare || 0 !== $v_compare) {
+        if(0 !== $f_compare) {
+          drupal_set_message("Hey! This form (not the form values) has changed since the last time CM Tracker recorded a change.
+      Someone or some thing made a change to the form. This change was captured in the config log.", 'warning');
+          //@todo link to diff
+        }
+
+        if(0 !== $v_compare) {
+          drupal_set_message("Hey! The settings for this form were changed since the last time CM Tracker recorded a change.
+        Someone or some thing made a change without using the config form, writing to the database!
+         This change was captured in the config log.", 'warning');
+          //@todo link to diff
+        }
+
+        // Save the mystery change.
+        db_insert('cmtracker_log')
+          ->fields(array(
+              'module_name' => '',
+              'tracking_id' => $form_id,
+              'tracking_title' => '',
+              'form_path' => $current_path,
+              'cmt_form' => $json_form,
+              'cmt_value' => $json_form_state,
+              'uid' => -1,
+              'uname' => 'UNKNOWN',
+              'created' => REQUEST_TIME,
+              'hostname' => ip_address(),
+            )
+          )
+          ->execute();
+
+      } // If either form or values don't match the last saved value, write a record to capture this.
+
+    } // If we have any previous saves for this form.
+
+    */
+
+  }
 
 }
 
@@ -84,6 +194,35 @@ function cmtracker_form_alter(&$form, &$form_state, $form_id) {
  */
 function _cmtracker_form_submit_handler($form, &$form_state) {
 
-//  dpm($form);
+  /*
+   * Tattle. Write to db table, for forms we’re watching.
+   * Some things such as editing a View need additional info- entire path;
+   * store that in form_path
+   */
+
+  global $user;
+
+  $json_form = json_encode($form);
+  $json_form_state = json_encode($form_state['values']);
+
+  $current_path = current_path();
+  $form_id = $form_state['values']['form_id'];
+
+  // Save this change.
+  db_insert('cmtracker_log')
+  ->fields(array(
+      'module_name' => '',
+      'tracking_id' => $form_id,
+      'tracking_title' => '',
+      'form_path' => $current_path,
+      'cmt_form' => $json_form,
+      'cmt_value' => $json_form_state,
+      'uid' => $user->uid,
+      'uname' => $user->name,
+      'created' => REQUEST_TIME,
+      'hostname' => ip_address(),
+    )
+  )
+  ->execute();
 
 }
